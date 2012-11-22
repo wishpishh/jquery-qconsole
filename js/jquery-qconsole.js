@@ -3,11 +3,13 @@
 	
 	var defaults = {
 		dropdownDuration: 150,
-		prompt: '>',
+		historySize: 50,
 		triggerKeys: [17, 188] // ctrl + ,
 	};	
 	
 	var activeKeys = [];
+	var hist = [];
+	var histCursor = 0;
 	var $input, $wrapper, $console, $textarea;
 	
 	$.qconsole = function(options) {
@@ -35,6 +37,20 @@
 		}).keyup(function(e) {
 			if(e.which === 13) {
 				handleInput.call(this, opts);
+			} else if (e.which === 38) {
+				
+				if (histCursor > 0) {
+					histCursor--;
+				}
+					$(this).val(hist[histCursor]);
+			} else if (e.which === 40) {
+
+				if(histCursor < hist.length) {
+					histCursor++;
+					$(this).val(hist[histCursor]);
+				} else {
+					$(this).val('');
+				}
 			}
 		});
 	};
@@ -63,9 +79,23 @@
 	
 	function handleInput(opts) {
 		var val = $(this).val();
+		
 		if (!val) return;
+		
 		$(this).val('');
+		
 		$('<span>' + val + '</span><br/>').appendTo($textarea);
+				
+		if (hist.length >= opts.historySize) {
+			hist.splice(0, 1);
+		}
+
+		if (histCursor !== hist.length && val === hist[histCursor]) {
+			hist.splice(histCursor, 1);
+		}
+		
+		hist.push(val);
+		histCursor = hist.length;
 	};
 	
 	$.qconsole.defaults = defaults;
