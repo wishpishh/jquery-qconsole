@@ -33,7 +33,9 @@
 		reset: function () {
 			this.matches = [];
 			this.cursor = 0;
-		}
+			this.updateWholeLine = false;
+		},
+		updateWholeLine: false
 	}
 	, hist
 	, histCursor = 0
@@ -187,7 +189,7 @@
 			case keymap.UPARROW:
 				if (histCursor > 0) {
 					histCursor--;
-				}			
+				}
 				$(this).val(hist[histCursor]);
 				break;
 			case keymap.DOWNARROW:
@@ -198,7 +200,7 @@
 					$(this).val('');
 				}
 				break;
-			case keymap.TAB:	
+			case keymap.TAB:
 				currentValParsed = currentVal.split(' ');
 				
 				// we're currently toggling between matching autocomplete results
@@ -219,12 +221,33 @@
 					// is the most recent token the first? then it should be a command
 					if (currentValParsed.length === 1) {
 						autocompleteState.update(commandNames, currentVal);
-					} 
+					}
 					// otherwise we try to autocomplete on the entered command's parameters
 					else if (currentValParsed.length === 2) {
 						activeCommand = currentValParsed[0];
 						
-						if (!commandList[activeCommand] || !commandList[activeCommand].autocomplete) {
+						if (!commandList[activeCommand]) {
+							return;
+						}
+						
+						if (commandList[activeCommand].type !== 'client' && service && servie.complete) {
+							$.ajax({
+								url: service.complete,
+								data: { command: currentVal },
+								success: function(data) {
+									if (!data.length) {
+										return;
+									}
+									
+									autocompleteState.matches = data;
+									autocompleteState.updateWholeLine = true;
+								}
+							});
+							
+							return;
+						}
+						
+						if (!commandList[activeCommand].autocomplete) {
 							break;
 						}
 						
@@ -236,8 +259,12 @@
 				// make sure to append the last autocomplete result to the input instead of replacing the whole input,
 				// but in the case there's valid command entered it should not be sliced off the input
 				if (autocompleteState.matches.length) {
-					$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') + 
-						' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
+					if (autocompleteState.updateWholeLine) {
+						$(this).val(autocompleteState.matches[autocompleteState.cursor]);
+					} else {
+						$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') + 
+							' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
+					}
 				}
 				break;
 		}
