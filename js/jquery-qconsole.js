@@ -37,7 +37,8 @@
 	}
 	, hist
 	, histCursor = 0
-	, $input, $wrapper, $console, $textarea;
+	, $input, $wrapper, $console, $textarea
+	, service;
 	
 	var nativeCommands = {
 		help: {
@@ -62,7 +63,8 @@
 			
 				return { success: true, message: retVal };
 			},
-			autocomplete: commandNames
+			autocomplete: commandNames,
+			type: 'client'
 		},
 		clear: {
 			helptext: 'Clear the display or input history<span class="qc-output qc-tab-2">Options: disp, hist</span>',
@@ -84,14 +86,16 @@
 						return { success: false, message: "invalid argument: " + arg };
 				}
 			},
-			autocomplete: ['disp', 'hist']
+			autocomplete: ['disp', 'hist'],
+			type: 'client'
 		},
 		echo: {
 			helptext: 'Echo the entered text',
 			command: function(val) {
 				return { success: true, message: val };
 			},
-			autocomplete: []
+			autocomplete: [],
+			type: 'client'
 		},
 		set: {
 			helptext: 'set an option for qconsole<span class="qc-output qc-tab-2">Options: height</span>',
@@ -114,12 +118,8 @@
 						return { success: false, message: 'invalid argument: ' + opt };
 				}
 			},
-			autocomplete: []
-		},
-		erre: {
-			helptext: '',
-			command: function() {},
-			autocomplete: ['test', 'titta']
+			autocomplete: ['height'],
+			type: 'client'
 		}
 	};
 	
@@ -162,6 +162,8 @@
 					
 					$.extend(commandList, data.commands);
 					parseCommandNames();
+					
+					service = data;
 				}
 			})
 		}
@@ -289,21 +291,38 @@
 		var parsedInput = input.split(' ')
 		, command = parsedInput[0]
 		, args = parsedInput.slice(1, parsedInput.length)
-		, $outputWrapper = $('<span class="qc-output"></span>')
-		, $inputEcho = $('<span class="qc-output qc-italic">' + input + '</span><span class="qc-output-cur">-></span>')
-		, $retValWrapper = $('<span></span>')
 		, retVal = ''
 		, result;
 		
-		$outputWrapper.append($inputEcho).append($retValWrapper);
-				
 		if (commandList[command]) {
-			result = commandList[command].command.apply(this, args);
-			retVal = result.message || '';
+			if (commandList[command].type === 'client') {
+				result = commandList[command].command.apply(this, args);
+				retVal = result.message || '';
+				renderResponse(input, result, retVal);
+			} else if (service.execute) {
+				$.ajax({
+					url: service.execute,
+					data: { command: input },
+					success: function (data) {
+						console.log(data);
+					}
+				})
+			}
 		} else {
 			result = { success: false, message: 'unknown command: ' + command };
 			retVal += result.message;
+			renderResponse(input, result, retVal);
 		}
+		
+		updateHistory(input);
+	};
+	
+	function renderResponse(input, result, retVal) {
+		var $outputWrapper = $('<span class="qc-output"></span>')
+		, $inputEcho = $('<span class="qc-output qc-italic">' + input + '</span><span class="qc-output-cur">-></span>')
+		, $retValWrapper = $('<span></span>');
+		
+		$outputWrapper.append($inputEcho).append($retValWrapper);
 		
 		if (!result.success) {
 			$retValWrapper.addClass('qc-unknown-command').addClass('qc-italic');
@@ -316,9 +335,8 @@
 		$retValWrapper.html(retVal);
 		$outputWrapper.appendTo($textarea);
 		
-		updateHistory(input);
 		updateTextarea();
-	};
+	}
 	
 	function initHistory() {
 		if (supportsLocalStorage) {
