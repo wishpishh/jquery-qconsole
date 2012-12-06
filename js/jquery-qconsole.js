@@ -12,10 +12,10 @@
 		help: {
 			helptext: 'Print list of commands and their help texts',
 			command: function() {
-				var retVal = '<span class="qc-output">Available commands:</span>';
+				var retVal = 'Available commands:';
 			
 				for (var c in commandList) {
-					retVal += '<span class="qc-output qc-tab">' + c + ':';
+					retVal += '<span class="qc-output qc-tab-2">' + c + ':';
 					if (commandList[c].helptext) {
 						retVal += '<span class="qc-output qc-tab">' + commandList[c].helptext + '</span>';
 					}
@@ -26,11 +26,11 @@
 			}
 		},
 		clear: {
-			helptext: 'Clear the display',
+			helptext: 'Clear the display or input history<br/><span class="qc-tab">Options: disp, hist</span>',
 			command: function(arg) {
 				if (!arguments.length) {
 					$textarea.empty();
-					return '';
+					return;
 				}
 				
 				switch (arg) {
@@ -137,22 +137,31 @@
 		
 		if (!input) return;
 		
+		$(this).val('');
+		
 		var parsedInput = input.split(' ')
 			, command = parsedInput[0]
 			, args = parsedInput.slice(1, parsedInput.length)
-			, retVal = '<span class="qc-output">' + input + '</span><span class="qc-output-cur">-></span>'
-			, $retValWrapper = $('<span class="qc-output"></span>');
+			, $outputWrapper = $('<span class="qc-output"></span>')
+			, $inputEcho = $('<span class="qc-output">' + input + '</span><span class="qc-output-cur">-></span>')
+			, $retValWrapper = $('<span></span>')
+			, retVal = '';
 		
-		$(this).val('');
-		
+		$outputWrapper.append($inputEcho).append($retValWrapper);
+				
 		if (commandList[command]) {
-			retVal += commandList[command].command.apply(this, args);
+			retVal += commandList[command].command.apply(this, args) || '';
 		} else {
 			retVal += 'unknown command: ' + command;
 			$retValWrapper.addClass('qc-unknown-command');
 		}
 		
-		$retValWrapper.html(retVal).appendTo($textarea);
+		if (!retVal.length) {
+			$inputEcho.hide();
+		}
+		
+		$retValWrapper.html(retVal);
+		$outputWrapper.appendTo($textarea);
 		
 		updateHistory(input);
 		updateDisplay();
