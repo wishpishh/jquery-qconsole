@@ -33,7 +33,7 @@
 		echo: {
 			helptext: 'Echo the entered text',
 			command: function(val) {
-				return "-> " + val;
+				return val;
 			}
 		}
 	};
@@ -120,7 +120,7 @@
 	
 	function handleInput() {
 		var input = $(this).val();
-		var retVal, $retValWrapper = $('<span class="qc-output"></span>');
+		var retVal = '-> ', $retValWrapper = $('<span class="qc-output"></span>');
 		
 		if (!input) return;
 		
@@ -131,9 +131,9 @@
 		$(this).val('');
 		
 		if (commandList[command]) {
-			retVal = commandList[command].command.call(this, args);
+			retVal += commandList[command].command.call(this, args);
 		} else {
-			retVal = 'unknown command: ' + input;
+			retVal += 'unknown command: ' + command;
 			$retValWrapper.addClass('qc-unknown-command');
 		}
 		
@@ -144,8 +144,9 @@
 	
 	function initHistory() {
 		if (supportsLocalStorage) {
-			if (window.localStorage['qc-hist']) {
+			if (window.localStorage['qc-hist'] && window.localStorage['qc-hist-cur']) {
 				hist = JSON.parse(window.localStorage['qc-hist']);
+				histCursor = JSON.parse(window.localStorage['qc-hist-cur']);
 			} else {
 				hist = [];
 			}
@@ -155,6 +156,7 @@
 	function storeHistory() {
 		if (supportsLocalStorage) {
 			window.localStorage['qc-hist'] = JSON.stringify(hist);
+			window.localStorage['qc-hist-cur'] = histCursor;
 		}
 	};
 	
