@@ -2,6 +2,7 @@
 	"use strict";
 	
 	var settings = {
+		serviceUrl: '',
 		height: 250,
 		dropdownDuration: 150,
 		historySize: 50,
@@ -15,7 +16,28 @@
 		DOWNARROW: 40
 	};
 	
-	var commandNames = [];
+	var commandList = {}
+	, commandNames = []
+	, supportsLocalStorage
+	, activeKeys = []
+	, autocompleteState = {
+		cursor: 0,
+		matches: [],
+		update: function (feed, pattern) {
+			for (var entry in feed) {
+				if(feed[entry].match(new RegExp('^' + pattern, 'i'))) {
+					this.matches.push(feed[entry]);
+				}
+			}
+		},
+		reset: function () {
+			this.matches = [];
+			this.cursor = 0;
+		}
+	}
+	, hist
+	, histCursor = 0
+	, $input, $wrapper, $console, $textarea;
 	
 	var nativeCommands = {
 		help: {
@@ -101,28 +123,6 @@
 		}
 	};
 	
-	var commandList = {}
-	, supportsLocalStorage
-	, activeKeys = []
-	, autocompleteState = {
-		cursor: 0,
-		matches: [],
-		update: function (feed, pattern) {
-			for (var entry in feed) {
-				if(feed[entry].match(new RegExp('^' + pattern, 'i'))) {
-					this.matches.push(feed[entry]);
-				}
-			}
-		},
-		reset: function () {
-			this.matches = [];
-			this.cursor = 0;
-		}
-	}
-	, hist
-	, histCursor = 0
-	, $input, $wrapper, $console, $textarea;
-	
 	$.qconsole = function(options) {
 		$.extend(settings, options);
 		
@@ -151,6 +151,20 @@
 		// init commands list and names
 		$.extend(commandList, nativeCommands);
 		parseCommandNames();
+		
+		if (settings.serviceUrl) {
+			$.ajax({
+				url: settings.service,
+				success: function(data) {
+					if (!data.Commands) {
+						return;
+					}
+					
+					$.extend(commandList, data.Commands);
+					parseCommandNames();
+				}
+			})
+		}
 	};
 	
 	function handleInputKeyUp (e) {
@@ -191,7 +205,8 @@
 				} 
 				// there is only one autocomplete result and it is a valid command
 				// so we try to autocomplete on the command's parameters
-				else if (autocompleteState.matches.length === 1 && commandList[currentValParsed[0]]) {
+				else if (autocompleteState.matches.length === 1 && commandList[currentValParsed[0]]
+					&& commandList[currentValParsed[0]].autocomplete) {
 					autocompleteState.reset();
 					autocompleteState.update(commandList[currentValParsed[0]].autocomplete, '.*');
 					tokensToSliceOffset++;
@@ -207,7 +222,7 @@
 					else if (currentValParsed.length === 2) {
 						activeCommand = currentValParsed[0];
 						
-						if (!commandList[activeCommand]) {
+						if (!commandList[activeCommand] || !commandList[activeCommand].autocomplete) {
 							break;
 						}
 						
