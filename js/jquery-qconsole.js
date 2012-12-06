@@ -48,10 +48,10 @@
 					if (commandList[arg]) {
 						return {
 							success: true,
-							message: commandList[arg].helptext
+							result: commandList[arg].helptext
 						};
 					} else {
-						return { success: false, message: 'no such command: ' + arg };
+						return { success: false, result: 'no such command: ' + arg };
 					}
 				}
 				
@@ -61,7 +61,7 @@
 					retVal += '<span class="qc-output qc-tab-2">' + c + '</span>';
 				}
 			
-				return { success: true, message: retVal };
+				return { success: true, result: retVal };
 			},
 			autocomplete: commandNames,
 			type: 'client'
@@ -71,19 +71,19 @@
 			command: function(arg) {
 				if (!arguments.length) {
 					$textarea.empty();
-					return { success: true, message: '' };
+					return { success: true, result: '' };
 				}
 				
 				switch (arg) {
 					case 'disp':
 						$textarea.empty();
-						return { success: true, message: '' };
+						return { success: true, result: '' };
 					case 'hist':
 						hist = [];
 						storeHistory();
-						return { success: true, message: "cleared input history" };
+						return { success: true, result: "cleared input history" };
 					default:
-						return { success: false, message: "invalid argument: " + arg };
+						return { success: false, result: "invalid argument: " + arg };
 				}
 			},
 			autocomplete: ['disp', 'hist'],
@@ -92,7 +92,7 @@
 		echo: {
 			helptext: 'Echo the entered text',
 			command: function(val) {
-				return { success: true, message: val };
+				return { success: true, result: val };
 			},
 			autocomplete: [],
 			type: 'client'
@@ -101,21 +101,21 @@
 			helptext: 'set an option for qconsole<span class="qc-output qc-tab-2">Options: height</span>',
 			command: function(opt, arg) {
 				if (!arguments.length) {
-					return { success: false, message: 'invalid input, must provide an argument, see "help set"' };
+					return { success: false, result: 'invalid input, must provide an argument, see "help set"' };
 				}
 				
 				switch (opt) {
 					case 'height':
 						var parsedHeight = parseInt(arg, 10);
 						if (!parsedHeight || parsedHeight < 0) {
-							return { success: false, message: 'invalid argument, must be a number > 0' };
+							return { success: false, result: 'invalid argument, must be a number > 0' };
 						}
 						
 						settings.height = parsedHeight;
 						updateLayout();
-						return { success: true, message: '' };
+						return { success: true, result: '' };
 					default:
-						return { success: false, message: 'invalid argument: ' + opt };
+						return { success: false, result: 'invalid argument: ' + opt };
 				}
 			},
 			autocomplete: ['height'],
@@ -291,36 +291,38 @@
 		var parsedInput = input.split(' ')
 		, command = parsedInput[0]
 		, args = parsedInput.slice(1, parsedInput.length)
-		, retVal = ''
 		, result;
 		
 		if (commandList[command]) {
 			if (commandList[command].type === 'client') {
 				result = commandList[command].command.apply(this, args);
-				retVal = result.message || '';
-				renderResponse(input, result, retVal);
+				renderResponse(input, result);
 			} else if (service.execute) {
 				$.ajax({
 					url: service.execute,
 					data: { command: input },
 					success: function (data) {
-						console.log(data);
+						if (typeof (data.callback) === 'function') {
+							data.callback();
+						}
+						
+						renderResponse(input, result);
 					}
 				})
 			}
 		} else {
-			result = { success: false, message: 'unknown command: ' + command };
-			retVal += result.message;
-			renderResponse(input, result, retVal);
+			result = { success: false, result: 'unknown command: ' + command };
+			renderResponse(input, result);
 		}
 		
 		updateHistory(input);
 	};
 	
-	function renderResponse(input, result, retVal) {
+	function renderResponse(input, result) {
 		var $outputWrapper = $('<span class="qc-output"></span>')
 		, $inputEcho = $('<span class="qc-output qc-italic">' + input + '</span><span class="qc-output-cur">-></span>')
-		, $retValWrapper = $('<span></span>');
+		, $retValWrapper = $('<span></span>')
+		, retVal = result.result || '';
 		
 		$outputWrapper.append($inputEcho).append($retValWrapper);
 		
