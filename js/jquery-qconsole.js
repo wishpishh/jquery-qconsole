@@ -6,7 +6,16 @@
 		dropdownDuration: 150,
 		historySize: 50,
 		triggerKeyCombos: [[17, 188]] // ctrl + ,
-	};	
+	};
+	
+	var keymap = {
+		TAB: 9,
+		ENTER: 13,
+		UPARROW: 38,
+		DOWNARROW: 40
+	};
+	
+	var commandNames = [];
 	
 	var nativeCommands = {
 		help: {
@@ -51,12 +60,20 @@
 			command: function(val) {
 				return val;
 			}
+		},
+		eccelon: {
+			helptext: 'Eccelon',
+			command: function() { return "echelon"; }
 		}
 	};
 	
-	var commandList = {}	
+	var commandList = {}
 	, supportsLocalStorage
 	, activeKeys = []
+	, autocompleteState = {
+		cursor: 0,
+		matches: []
+	}
 	, hist
 	, histCursor = 0
 	, $input, $wrapper, $console, $textarea;
@@ -79,38 +96,69 @@
 			$(this).fadeTo(settings.dropdownDuration, 0.3);
 		}).focusout(function(e) {
 			$(this).fadeTo(settings.dropdownDuration, 0.2);
-		}).keyup(function(e) {
-			if(e.which === 13) {
+		}).keyup(handleInputKeyUp);
+		
+		supportsLocalStorage = supportsLocalStorage();
+		initHistory();
+	
+		// init commands list and names
+		$.extend(commandList, nativeCommands);
+		parseCommandNames();
+	};
+	
+	function handleInputKeyUp (e) {
+		var autocomplete;
+		
+		if (e.which !== keymap.TAB) {
+			autocompleteState.matches = [];
+			autocompleteState.cursor = 0;
+		}
+		
+		switch(e.which) {
+			case keymap.ENTER:
 				handleInput.call(this);
-			} else if (e.which === 38) {
-				
+				break;
+			case keymap.UPARROW:
 				if (histCursor > 0) {
 					histCursor--;
-				}
-					$(this).val(hist[histCursor]);
-			} else if (e.which === 40) {
-
+				}			
+				$(this).val(hist[histCursor]);
+				break;
+			case keymap.DOWNARROW:
 				if(histCursor < hist.length) {
 					histCursor++;
 					$(this).val(hist[histCursor]);
 				} else {
 					$(this).val('');
 				}
-			}
-		});
-		
-		supportsLocalStorage = supportsLocalStorage();
-		initHistory();
-	
-		// init commands list
-		$.extend(commandList, nativeCommands);
+				break;
+			case keymap.TAB:
+				if (autocompleteState.matches.length) {
+					autocompleteState.cursor = (autocompleteState.cursor + 1) % autocompleteState.matches.length;
+				} else {
+					for (var c in commandNames) {
+						if(commandNames[c].match(new RegExp($(this).val(), 'i'))) {
+							autocompleteState.matches.push(commandNames[c]);
+						}
+					}
+				}
+				
+				if (autocompleteState.matches.length) {
+					$(this).val(autocompleteState.matches[autocompleteState.cursor] + ' ');
+				}
+				break;
+		}
 	};
 	
-	function handleGlobalKeydown(e) {
+	function handleGlobalKeydown (e) {
+		if (e.which === keymap.TAB) {
+			e.preventDefault();
+		}
+		
 		activeKeys[e.which] = true;
 	};
 	
-	function handleGlobalKeyup(e) {
+	function handleGlobalKeyup (e) {
 		var triggerDropdown = true;
 		var triggerKeyCombo;
 		
@@ -140,12 +188,12 @@
 		$(this).val('');
 		
 		var parsedInput = input.split(' ')
-			, command = parsedInput[0]
-			, args = parsedInput.slice(1, parsedInput.length)
-			, $outputWrapper = $('<span class="qc-output"></span>')
-			, $inputEcho = $('<span class="qc-output">' + input + '</span><span class="qc-output-cur">-></span>')
-			, $retValWrapper = $('<span></span>')
-			, retVal = '';
+		, command = parsedInput[0]
+		, args = parsedInput.slice(1, parsedInput.length)
+		, $outputWrapper = $('<span class="qc-output"></span>')
+		, $inputEcho = $('<span class="qc-output">' + input + '</span><span class="qc-output-cur">-></span>')
+		, $retValWrapper = $('<span></span>')
+		, retVal = '';
 		
 		$outputWrapper.append($inputEcho).append($retValWrapper);
 				
@@ -215,6 +263,12 @@
 	function parseParamNames(fn) {
 		var fnStr = commandList[c].toString();
 		return fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
+	};
+	
+	function parseCommandNames() {
+		for (var c in commandList) {
+			commandNames.push(c);
+		}
 	};
 	
 	$.qconsole.settings = settings;
