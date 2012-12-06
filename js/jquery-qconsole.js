@@ -19,67 +19,74 @@
 	
 	var nativeCommands = {
 		help: {
-			helptext: 'Print list of commands and their help texts',
-			command: function() {
+			helptext: 'Print list of commands and their help texts<span class="qc-output qc-tab-2">Options: [command-name]</span>',
+			command: function(arg) {
+				if (arg) {
+					if (commandList[arg]) {
+						return {
+							success: true,
+							message: commandList[arg].helptext
+						};
+					} else {
+						return { success: false, message: 'no such command: ' + arg };
+					}
+				}
+				
 				var retVal = 'Available commands:';
 			
 				for (var c in commandList) {
-					retVal += '<span class="qc-output qc-tab-2">' + c + ':';
-					if (commandList[c].helptext) {
-						retVal += '<span class="qc-output qc-tab">' + commandList[c].helptext + '</span>';
-					}
-					retVal += '</span>';
+					retVal += '<span class="qc-output qc-tab-2">' + c + '</span>';
 				}
 			
-				return retVal;
+				return { success: true, message: retVal };
 			}
 		},
 		clear: {
-			helptext: 'Clear the display or input history<br/><span class="qc-tab">Options: disp, hist</span>',
+			helptext: 'Clear the display or input history<span class="qc-output qc-tab-2">Options: disp, hist</span>',
 			command: function(arg) {
 				if (!arguments.length) {
 					$textarea.empty();
-					return;
+					return { success: true, message: '' };
 				}
 				
 				switch (arg) {
 					case 'disp':
 						$textarea.empty();
-						break;
+						return { success: true, message: '' };
 					case 'hist':
 						hist = [];
 						storeHistory();
-						return "cleared input history";
+						return { success: true, message: "cleared input history" };
 					default:
-						return "invalid argument: " + arg;
+						return { success: false, message: "invalid argument: " + arg };
 				}
 			}
 		},
 		echo: {
 			helptext: 'Echo the entered text',
 			command: function(val) {
-				return val;
+				return { success: true, message: val };
 			}
 		},
 		set: {
-			helptext: 'set an option for qconsole<br/><span class="qc-tab">Options: height</span>',
+			helptext: 'set an option for qconsole<span class="qc-output qc-tab-2">Options: height</span>',
 			command: function(opt, arg) {
 				if (!arguments.length) {
-					return 'invalid input, must provide an argument, see "help set"';
+					return { success: false, message: 'invalid input, must provide an argument, see "help set"' };
 				}
 				
 				switch (opt) {
 					case 'height':
 						var parsedHeight = parseInt(arg, 10);
 						if (!parsedHeight || parsedHeight < 0) {
-							return 'invalid argument, must be a number > 0';
+							return { success: false, message: 'invalid argument, must be a number > 0' };
 						}
 						
 						settings.height = parsedHeight;
 						updateLayout();
-						break;
+						return { success: true, message: '' };
 					default:
-						return 'invalid argument: ' + opt;
+						return { success: false, message: 'invalid argument: ' + opt };
 				}
 				
 			}
@@ -210,17 +217,23 @@
 		, command = parsedInput[0]
 		, args = parsedInput.slice(1, parsedInput.length)
 		, $outputWrapper = $('<span class="qc-output"></span>')
-		, $inputEcho = $('<span class="qc-output">' + input + '</span><span class="qc-output-cur">-></span>')
+		, $inputEcho = $('<span class="qc-output qc-italic">' + input + '</span><span class="qc-output-cur">-></span>')
 		, $retValWrapper = $('<span></span>')
-		, retVal = '';
+		, retVal = ''
+		, result;
 		
 		$outputWrapper.append($inputEcho).append($retValWrapper);
 				
 		if (commandList[command]) {
-			retVal += commandList[command].command.apply(this, args) || '';
+			result = commandList[command].command.apply(this, args);
+			retVal = result.message || '';
 		} else {
-			retVal += 'unknown command: ' + command;
-			$retValWrapper.addClass('qc-unknown-command');
+			result = { success: false, message: 'unknown command: ' + command };
+			retVal += result.message;
+		}
+		
+		if (!result.success) {
+			$retValWrapper.addClass('qc-unknown-command').addClass('qc-italic');
 		}
 		
 		if (!retVal.length) {

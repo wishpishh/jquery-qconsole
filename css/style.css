@@ -39,6 +39,9 @@
 
 .qc-unknown-command {
 	color: red;
+}
+
+.qc-italic {
 	font-style: italic;
 }
 
