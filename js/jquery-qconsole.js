@@ -154,13 +154,13 @@
 		
 		if (settings.serviceUrl) {
 			$.ajax({
-				url: settings.service,
+				url: settings.serviceUrl,
 				success: function(data) {
-					if (!data.Commands) {
+					if (!data.commands) {
 						return;
 					}
 					
-					$.extend(commandList, data.Commands);
+					$.extend(commandList, data.commands);
 					parseCommandNames();
 				}
 			})
