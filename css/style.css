@@ -52,3 +52,9 @@
 .qc-tab {
 	padding: 0 20px;
 }
+
+.qc-output-cur {
+	color: yellow;
+	font-size: 10px;
+	padding: 0 10px;
+}

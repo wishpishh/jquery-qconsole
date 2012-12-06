@@ -120,13 +120,14 @@
 	
 	function handleInput() {
 		var input = $(this).val();
-		var retVal = '-> ', $retValWrapper = $('<span class="qc-output"></span>');
 		
 		if (!input) return;
 		
-		var parsedInput = input.split(' ');
-		var command = parsedInput[0];
-		var args = parsedInput.slice(1, parsedInput.length);
+		var parsedInput = input.split(' ')
+			, command = parsedInput[0]
+			, args = parsedInput.slice(1, parsedInput.length)
+			, retVal = '<span class="qc-output">' + input + '</span><span class="qc-output-cur">-></span>'
+			, $retValWrapper = $('<span class="qc-output"></span>');
 		
 		$(this).val('');
 		
