@@ -39,7 +39,8 @@
 				}
 			
 				return { success: true, message: retVal };
-			}
+			},
+			autocomplete: commandNames
 		},
 		clear: {
 			helptext: 'Clear the display or input history<span class="qc-output qc-tab-2">Options: disp, hist</span>',
@@ -60,13 +61,15 @@
 					default:
 						return { success: false, message: "invalid argument: " + arg };
 				}
-			}
+			},
+			autocomplete: ['disp', 'hist']
 		},
 		echo: {
 			helptext: 'Echo the entered text',
 			command: function(val) {
 				return { success: true, message: val };
-			}
+			},
+			autocomplete: []
 		},
 		set: {
 			helptext: 'set an option for qconsole<span class="qc-output qc-tab-2">Options: height</span>',
@@ -88,8 +91,13 @@
 					default:
 						return { success: false, message: 'invalid argument: ' + opt };
 				}
-				
-			}
+			},
+			autocomplete: []
+		},
+		erre: {
+			helptext: '',
+			command: function() {},
+			autocomplete: ['test', 'titta']
 		}
 	};
 	
@@ -98,7 +106,18 @@
 	, activeKeys = []
 	, autocompleteState = {
 		cursor: 0,
-		matches: []
+		matches: [],
+		update: function (feed, pattern) {
+			for (var entry in feed) {
+				if(feed[entry].match(new RegExp('^' + pattern, 'i'))) {
+					this.matches.push(feed[entry]);
+				}
+			}
+		},
+		reset: function () {
+			this.matches = [];
+			this.cursor = 0;
+		}
 	}
 	, hist
 	, histCursor = 0
@@ -134,10 +153,15 @@
 		parseCommandNames();
 	};
 	
-	function handleInputKeyUp (e) {		
+	function handleInputKeyUp (e) {
+		var activeCommand
+		, tokensToSliceOffset = 0
+		, activeArg
+		, currentValParsed
+		, currentVal = $(this).val().trim();
+		
 		if (e.which !== keymap.TAB) {
-			autocompleteState.matches = [];
-			autocompleteState.cursor = 0;
+			autocompleteState.reset();
 		}
 		
 		switch(e.which) {
@@ -158,21 +182,55 @@
 					$(this).val('');
 				}
 				break;
-			case keymap.TAB:
-				if (autocompleteState.matches.length) {
+			case keymap.TAB:	
+				currentValParsed = currentVal.split(' ');
+				
+				// we're currently toggling between matching autocomplete results
+				if (autocompleteState.matches.length > 1) {
 					autocompleteState.cursor = (autocompleteState.cursor + 1) % autocompleteState.matches.length;
-				} else {
-					for (var c in commandNames) {
-						if(commandNames[c].match(new RegExp($(this).val(), 'i'))) {
-							autocompleteState.matches.push(commandNames[c]);
+				} 
+				// there is only one autocomplete result and it is a valid command
+				// so we try to autocomplete on the command's parameters
+				else if (autocompleteState.matches.length === 1 && commandList[currentValParsed[0]]) {
+					autocompleteState.reset();
+					autocompleteState.update(commandList[currentValParsed[0]].autocomplete, '.*');
+					tokensToSliceOffset++;
+				} 
+				// we're not currently toggling autocomplete results so we want to see if there are any
+				// new autocomplete result for the most recent input token
+				else {
+					// is the most recent token the first? then it should be a command
+					if (currentValParsed.length === 1) {
+						autocompleteState.update(commandNames, currentVal);
+					} 
+					// otherwise we try to autocomplete on the entered command's parameters
+					else if (currentValParsed.length === 2) {
+						activeCommand = currentValParsed[0];
+						
+						if (!commandList[activeCommand]) {
+							break;
 						}
+						
+						activeArg = currentValParsed[1];
+						autocompleteState.update(commandList[activeCommand].autocomplete, activeArg);
 					}
 				}
 				
+				// make sure to append the last autocomplete result to the input instead of replacing the whole input,
+				// but in the case there's valid command entered it should not be sliced off the input
 				if (autocompleteState.matches.length) {
-					$(this).val(autocompleteState.matches[autocompleteState.cursor] + ' ');
+					$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') + 
+						' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
 				}
 				break;
+		}
+	};
+	
+	function updateAutocompleteState(feed, pattern) {
+		for (var entry in feed) {
+			if(feed[entry].match(new RegExp(pattern, 'i'))) {
+				autocompleteState.matches.push(feed[entry]);
+			}
 		}
 	};
 	
