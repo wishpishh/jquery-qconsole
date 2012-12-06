@@ -39,3 +39,16 @@
 	bottom: 0px;
 	left: 0px;
 }
+
+.qc-unknown-command {
+	color: red;
+	font-style: italic;
+}
+
+.qc-output {
+	display: block;
+}
+
+.qc-tab {
+	padding: 0 20px;
+}
