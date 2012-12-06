@@ -302,11 +302,11 @@
 					url: service.execute,
 					data: { command: input },
 					success: function (data) {
-						if (typeof (data.callback) === 'function') {
-							data.callback();
+						if (data.callback != null) {
+							eval(data.callback);
 						}
 						
-						renderResponse(input, result);
+						renderResponse(input, data);
 					}
 				})
 			}
