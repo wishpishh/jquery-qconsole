@@ -3,7 +3,6 @@
 	top: 0px;
 	left: 0px;
 	width: 100%;
-	height: 30%;
 	display: none;
 	overflow: hidden;
 }
@@ -11,7 +10,6 @@
 .qc-textarea {
 	position: relative;
 	padding: 10px;
-	height: 65%;
 	overflow-y: auto;
 	overflow-x: hidden;
 }
@@ -33,7 +31,6 @@
 	padding: 10px;
 	width: 100%;
 	border: 0;
-	font-size: 16px;
 	color: #ddd;
 	background: black;
 	bottom: 0px;

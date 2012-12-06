@@ -2,6 +2,7 @@
 	"use strict";
 	
 	var settings = {
+		height: 250,
 		dropdownDuration: 150,
 		historySize: 50,
 		triggerKeyCombos: [[17, 188]] // ctrl + ,
@@ -26,8 +27,23 @@
 		},
 		clear: {
 			helptext: 'Clear the display',
-			command: function() {
-				$textarea.empty();
+			command: function(arg) {
+				if (!arguments.length) {
+					$textarea.empty();
+					return '';
+				}
+				
+				switch (arg) {
+					case 'disp':
+						$textarea.empty();
+						break;
+					case 'hist':
+						hist = [];
+						storeHistory();
+						return "cleared input history";
+					default:
+						return "invalid argument: " + arg;
+				}
 			}
 		},
 		echo: {
@@ -38,33 +54,31 @@
 		}
 	};
 	
-	var commandList = {};
-	
-	var supportsLocalStorage;
-	var activeKeys = [];
-	var hist;
-	var histCursor = 0;
-	var $input, $wrapper, $console, $textarea;
+	var commandList = {}	
+	, supportsLocalStorage
+	, activeKeys = []
+	, hist
+	, histCursor = 0
+	, $input, $wrapper, $console, $textarea;
 	
 	$.qconsole = function(options) {
-		var opts = $.extend({}, settings, options);
+		$.extend(settings, options);
 		
 		// Init qconsole markup
-		var $container = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input class="qc-input" type="text"></input></div></div>');
-		
-		$('body').append($container);
-		$input = $('.qc-input');
-		$wrapper = $('.qc-wrapper');
-		$console = $('.qc-console');
-		$textarea = $('.qc-textarea');
+		$wrapper = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input class="qc-input" type="text"></input></div></div>');
+		$wrapper.css('height', settings.height + 'px');
+		$console = $wrapper.find('.qc-console');
+		$input = $wrapper.find('.qc-input').css('font-size', '16px');
+		$textarea = $wrapper.find('.qc-textarea').css('height', settings.height - 60 + 'px');
+		$('body').append($wrapper);
 		
 		// Init event handlers
 		$(document).keydown(handleGlobalKeydown).keyup(handleGlobalKeyup);
 
 		$input.focusin(function(e) {
-			$(this).fadeTo(opts.dropdownDuration, 0.3);
+			$(this).fadeTo(settings.dropdownDuration, 0.3);
 		}).focusout(function(e) {
-			$(this).fadeTo(opts.dropdownDuration, 0.2);
+			$(this).fadeTo(settings.dropdownDuration, 0.2);
 		}).keyup(function(e) {
 			if(e.which === 13) {
 				handleInput.call(this);
@@ -132,7 +146,7 @@
 		$(this).val('');
 		
 		if (commandList[command]) {
-			retVal += commandList[command].command.call(this, args);
+			retVal += commandList[command].command.apply(this, args);
 		} else {
 			retVal += 'unknown command: ' + command;
 			$retValWrapper.addClass('qc-unknown-command');
@@ -141,6 +155,7 @@
 		$retValWrapper.html(retVal).appendTo($textarea);
 		
 		updateHistory(input);
+		updateDisplay();
 	};
 	
 	function initHistory() {
@@ -174,6 +189,10 @@
 		histCursor = hist.length;
 		
 		storeHistory();
+	};
+	
+	function updateDisplay() {
+		$textarea.stop().animate({ scrollTop: $textarea[0].scrollHeight }, 150);
 	};
 	
 	function supportsLocalStorage() {
