@@ -4,31 +4,33 @@
 	var defaults = {
 		dropdownDuration: 150,
 		historySize: 50,
-		triggerKeys: [17, 188] // ctrl + ,
+		triggerKeyCombos: [[17, 188]] // ctrl + ,
 	};	
 	
+	var supportsLocalStorage;
 	var activeKeys = [];
-	var hist = [];
+	var hist;
 	var histCursor = 0;
 	var $input, $wrapper, $console, $textarea;
 	
 	$.qconsole = function(options) {
 		var opts = $.extend({}, defaults, options);
 		
+		// Init qconsole markup
 		var $container = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input class="qc-input" type="text"></input></div></div>');
 		
 		$('body').append($container);
-
-		$(document).keydown(function(e) {
-			handleGlobalKeydown(opts, e);
-		}).keyup(function(e) {
-			handleGlobalKeyup(opts, e);
-		});
-		
 		$input = $('.qc-input');
 		$wrapper = $('.qc-wrapper');
 		$console = $('.qc-console');
 		$textarea = $('.qc-textarea');
+		
+		// Init event handlers
+		$(document).keydown(function(e) {
+			handleGlobalKeydown(opts, e);
+		}).keyup(function(e) {
+			handleGlobalKeyup(opts, e);
+		});		
 
 		$input.focusin(function(e) {
 			$(this).fadeTo(opts.dropdownDuration, 0.3);
@@ -53,6 +55,10 @@
 				}
 			}
 		});
+		
+		supportsLocalStorage = supportsLocalStorage();
+		initHistory();
+	
 	};
 	
 	function handleGlobalKeydown(opts, e) {
@@ -61,10 +67,14 @@
 	
 	function handleGlobalKeyup(opts, e) {
 		var triggerDropdown = true;
+		var triggerKeyCombo;
 		
-		for (var i in opts.triggerKeys) {
-			if (!activeKeys[opts.triggerKeys[i]]) {
-				triggerDropdown = false;
+		for (var i in opts.triggerKeyCombos) {
+			triggerKeyCombo = opts.triggerKeyCombos[i];
+			for(var j in triggerKeyCombo) {
+				if (!activeKeys[triggerKeyCombo[j]]) {
+					triggerDropdown = false;
+				}
 			}
 		}
 		
@@ -96,7 +106,33 @@
 		
 		hist.push(val);
 		histCursor = hist.length;
+		
+		storeHistory();
 	};
+	
+	function initHistory() {
+		if (supportsLocalStorage) {
+			if (window.localStorage['qc-hist']) {
+				hist = JSON.parse(window.localStorage['qc-hist']);
+			} else {
+				hist = [];
+			}
+		}
+	};
+	
+	function storeHistory() {
+		if (supportsLocalStorage) {
+			window.localStorage['qc-hist'] = JSON.stringify(hist);
+		}
+	};
+	
+	function supportsLocalStorage() {
+		try {
+			return 'localStorage' in window && window['localStorage'] !== null;
+		} catch (e) {
+			return false;
+		}
+	}
 	
 	$.qconsole.defaults = defaults;
 }(jQuery));
