@@ -61,9 +61,28 @@
 				return val;
 			}
 		},
-		eccelon: {
-			helptext: 'Eccelon',
-			command: function() { return "echelon"; }
+		set: {
+			helptext: 'set an option for qconsole<br/><span class="qc-tab">Options: height</span>',
+			command: function(opt, arg) {
+				if (!arguments.length) {
+					return 'invalid input, must provide an argument, see "help set"';
+				}
+				
+				switch (opt) {
+					case 'height':
+						var parsedHeight = parseInt(arg, 10);
+						if (!parsedHeight || parsedHeight < 0) {
+							return 'invalid argument, must be a number > 0';
+						}
+						
+						settings.height = parsedHeight;
+						updateLayout();
+						break;
+					default:
+						return 'invalid argument: ' + opt;
+				}
+				
+			}
 		}
 	};
 	
@@ -83,10 +102,12 @@
 		
 		// Init qconsole markup
 		$wrapper = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input class="qc-input" type="text"></input></div></div>');
-		$wrapper.css('height', settings.height + 'px');
 		$console = $wrapper.find('.qc-console');
-		$input = $wrapper.find('.qc-input').css('font-size', '16px');
-		$textarea = $wrapper.find('.qc-textarea').css('height', settings.height - 60 + 'px');
+		$input = $wrapper.find('.qc-input');
+		$textarea = $wrapper.find('.qc-textarea');
+		
+		updateLayout();
+		
 		$('body').append($wrapper);
 		
 		// Init event handlers
@@ -106,9 +127,7 @@
 		parseCommandNames();
 	};
 	
-	function handleInputKeyUp (e) {
-		var autocomplete;
-		
+	function handleInputKeyUp (e) {		
 		if (e.which !== keymap.TAB) {
 			autocompleteState.matches = [];
 			autocompleteState.cursor = 0;
@@ -212,7 +231,7 @@
 		$outputWrapper.appendTo($textarea);
 		
 		updateHistory(input);
-		updateDisplay();
+		updateTextarea();
 	};
 	
 	function initHistory() {
@@ -248,8 +267,14 @@
 		storeHistory();
 	};
 	
-	function updateDisplay() {
+	function updateTextarea() {
 		$textarea.stop().animate({ scrollTop: $textarea[0].scrollHeight }, 150);
+	};
+	
+	function updateLayout() {
+		$wrapper.css('height', settings.height + 'px');
+		$input.css('font-size', '16px');
+		$textarea.css('height', settings.height - 60 + 'px');
 	};
 	
 	function supportsLocalStorage() {
