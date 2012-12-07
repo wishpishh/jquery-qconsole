@@ -1,4 +1,4 @@
-.qc-wrapper {
+div.qc-wrapper {
 	position: absolute;
 	top: 0px;
 	left: 0px;
@@ -6,6 +6,7 @@
 	display: none;
 	overflow: hidden;
     z-index: 9999;
+	text-align: left;
 }
 
 .qc-wrapper div.qc-textarea {

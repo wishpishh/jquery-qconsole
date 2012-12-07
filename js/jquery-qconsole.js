@@ -284,12 +284,16 @@
 		var triggerKeyCombo;
 		
 		for (var i in settings.triggerKeyCombos) {
+			triggerDropdown = true;
 			triggerKeyCombo = settings.triggerKeyCombos[i];
 			for(var j in triggerKeyCombo) {
 				if (!activeKeys[triggerKeyCombo[j]]) {
 					triggerDropdown = false;
 				}
 			}
+
+			if (triggerDropdown == true)
+				break;
 		}
 		
 		if (triggerDropdown) {
