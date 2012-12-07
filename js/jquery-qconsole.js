@@ -159,10 +159,12 @@
 		            if (!data.commands) {
 		                return;
 		            }
+		            
+                    for (var command in data.commands) {
+                        commandList[command] = { helptext: data.commands[command] };
+                    }
 
-		            $.extend(commandList, data.commands);
 		            parseCommandNames();
-
 		            service = data;
 		        }
 		    });
