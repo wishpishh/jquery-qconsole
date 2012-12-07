@@ -23,6 +23,8 @@
 		cursor: 0,
 		matches: [],
 		update: function (feed, pattern) {
+		    this.reset();
+		    
 			for (var entry in feed) {
 				if(feed[entry].match(new RegExp('^' + pattern, 'i'))) {
 					this.matches.push(feed[entry]);
@@ -64,7 +66,7 @@
 			
 				return { success: true, result: retVal };
 			},
-			autocomplete: commandNames,
+			autocomplete: parseKeys(commandList),
 			type: 'client'
 		},
 		clear: {
@@ -150,7 +152,6 @@
 	
 		// init commands list and names
 		$.extend(commandList, nativeCommands);
-		parseCommandNames();
 		
 		if (settings.serviceUrl) {
 		    $.ajax({
@@ -163,8 +164,6 @@
                     for (var command in data.commands) {
                         commandList[command] = { helptext: data.commands[command] };
                     }
-
-		            parseCommandNames();
 		            service = data;
 		        }
 		    });
@@ -221,7 +220,7 @@
 				else {
 					// is the most recent token the first? then it should be a command
 					if (currentValParsed.length === 1) {
-						autocompleteState.update(commandNames, currentVal);
+						autocompleteState.update(parseKeys(commandList), currentVal);
 					}
 					// otherwise we try to autocomplete on the entered command's parameters
 					else if (currentValParsed.length > 1) {
@@ -415,10 +414,12 @@
 		}
 	};
 	
-	function parseCommandNames() {
-		for (var c in commandList) {
-			commandNames.push(c);
-		}
+	function parseKeys(obj) {
+	    var keys = [];
+	    for (var key in obj) {
+	        keys.push(key);
+	    }
+	    return keys;
 	};
 	
 	$.qconsole.settings = settings;
