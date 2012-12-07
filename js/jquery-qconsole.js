@@ -155,19 +155,19 @@
 		parseCommandNames();
 		
 		if (settings.serviceUrl) {
-			$.ajax({
-				url: settings.serviceUrl,
-				success: function(data) {
-					if (!data.commands) {
-						return;
-					}
-					
-					$.extend(commandList, data.commands);
-					parseCommandNames();
-					
-					service = data;
-				}
-			})
+		    $.ajax({
+		        url: settings.serviceUrl,
+		        success: function (data) {
+		            if (!data.commands) {
+		                return;
+		            }
+
+		            $.extend(commandList, data.commands);
+		            parseCommandNames();
+
+		            service = data;
+		        }
+		    });
 		}
 	};
 	
@@ -230,7 +230,7 @@
 							return;
 						}
 						
-						if (commandList[activeCommand].type !== 'client' && service && servie.complete) {
+						if (commandList[activeCommand].type !== 'client' && service && service.complete) {
 							$.ajax({
 								url: service.complete,
 								data: { command: currentVal },
@@ -267,14 +267,6 @@
 					}
 				}
 				break;
-		}
-	};
-	
-	function updateAutocompleteState(feed, pattern) {
-		for (var entry in feed) {
-			if(feed[entry].match(new RegExp(pattern, 'i'))) {
-				autocompleteState.matches.push(feed[entry]);
-			}
 		}
 	};
 	
@@ -325,17 +317,17 @@
 				result = commandList[command].command.apply(this, args);
 				renderResponse(input, result);
 			} else if (service.execute) {
-				$.ajax({
-					url: service.execute,
-					data: { command: input },
-					success: function (data) {
-						if (data.callback != null) {
-							eval(data.callback);
-						}
-						
-						renderResponse(input, data);
-					}
-				})
+			    $.ajax({
+			        url: service.execute,
+			        data: { command: input },
+			        success: function (data) {
+			            if (data.callback != null) {
+			                eval(data.callback);
+			            }
+
+			            renderResponse(input, data);
+			        }
+			    });
 			}
 		} else {
 			result = { success: false, result: 'unknown command: ' + command };
