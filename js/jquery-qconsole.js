@@ -305,6 +305,8 @@
 		var input = $(this).val().trim();
 		
 		if (!input) return;
+
+		updateHistory(input);
 		
 		$(this).val('');
 		
@@ -334,8 +336,6 @@
 			result = { success: false, result: 'unknown command: ' + command };
 			renderResponse(input, result);
 		}
-		
-		updateHistory(input);
 	};
 	
 	function renderResponse(input, result) {
@@ -418,8 +418,4 @@
 	};
 	
 	$.qconsole.settings = settings;
-}(citybreakjq));
-
-citybreakjq(function() {
-    citybreakjq.qconsole({ serviceUrl: '/QConsole.axd?action=commands', triggerKeyCombos: [[17, 188]] });
-});
+}(jQuery));
