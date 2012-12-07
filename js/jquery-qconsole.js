@@ -288,6 +288,9 @@
 					triggerDropdown = false;
 				}
 			}
+
+			if (triggerDropdown)
+				break;
 		}
 		
 		if (triggerDropdown) {
