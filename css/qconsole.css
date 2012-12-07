@@ -8,14 +8,14 @@
     z-index: 9999;
 }
 
-.qc-textarea {
+.qc-wrapper div.qc-textarea {
 	position: relative;
 	padding: 10px;
 	overflow-y: auto;
 	overflow-x: hidden;
 }
 
-.qc-console {
+.qc-wrapper div.qc-console {
 	width: 100%;
 	background: rgba(0,0,0,0.85);
 	height: 100%;
@@ -27,7 +27,7 @@
 	font-size: 12px;
 }
 
-input[type="text"].qc-input {
+.qc-wrapper input[type="text"].qc-input {
 	position: absolute;	
 	padding: 10px;
 	width: 100%;
