@@ -18,7 +18,6 @@
 	
 	var commandList = {}
 	, commandNames = []
-	, supportsLocalStorage
 	, activeKeys = []
 	, autocompleteState = {
 		cursor: 0,
@@ -141,13 +140,12 @@
 		// Init event handlers
 		$(document).keydown(handleGlobalKeydown).keyup(handleGlobalKeyup);
 
-		$input.focusin(function(e) {
+		$input.focusin(function() {
 			$(this).fadeTo(settings.dropdownDuration, 0.3);
-		}).focusout(function(e) {
+		}).focusout(function() {
 			$(this).fadeTo(settings.dropdownDuration, 0.2);
 		}).keyup(handleInputKeyUp);
 		
-		supportsLocalStorage = supportsLocalStorage();
 		initHistory();
 	
 		// init commands list and names
@@ -360,7 +358,7 @@
 	}
 	
 	function initHistory() {
-		if (supportsLocalStorage) {
+		if (supportsLocalStorage()) {
 			if (window.localStorage['qc-hist'] && window.localStorage['qc-hist-cur']) {
 				hist = JSON.parse(window.localStorage['qc-hist']);
 				histCursor = JSON.parse(window.localStorage['qc-hist-cur']);
@@ -371,7 +369,7 @@
 	};
 	
 	function storeHistory() {
-		if (supportsLocalStorage) {
+		if (supportsLocalStorage()) {
 			window.localStorage['qc-hist'] = JSON.stringify(hist);
 			window.localStorage['qc-hist-cur'] = histCursor;
 		}
@@ -402,17 +400,12 @@
 		$textarea.css('height', settings.height - 60 + 'px');
 	};
 	
-	function supportsLocalStorage() {
+	function supportsLocalStorage()() {
 		try {
 			return 'localStorage' in window && window['localStorage'] !== null;
 		} catch (e) {
 			return false;
 		}
-	};
-	
-	function parseParamNames(fn) {
-		var fnStr = commandList[c].toString();
-		return fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
 	};
 	
 	function parseCommandNames() {
