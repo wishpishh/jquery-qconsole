@@ -155,7 +155,7 @@
 		if (settings.serviceUrl) {
 		    $.ajax({
 		        url: settings.serviceUrl,
-		        success: function (data) {
+		        success: function(data) {
 		            if (!data.commands) {
 		                return;
 		            }
@@ -174,7 +174,8 @@
 		, tokensToSliceOffset = 0
 		, activeArg
 		, currentValParsed
-		, currentVal = $(this).val().trim();
+	    , inputElem = this
+		, currentVal = $(inputElem).val().trim();
 		
 		if (e.which !== keymap.TAB) {
 			autocompleteState.reset();
@@ -221,24 +222,25 @@
 						autocompleteState.update(commandNames, currentVal);
 					}
 					// otherwise we try to autocomplete on the entered command's parameters
-					else if (currentValParsed.length === 2) {
-						activeCommand = currentValParsed[0];
+					else if (currentValParsed.length > 1) {
+					    activeCommand = currentValParsed[0];
+					    activeArg = currentValParsed[currentValParsed.length - 1];
 						
 						if (!commandList[activeCommand]) {
 							return;
 						}
 						
-						if (commandList[activeCommand].type !== 'client' && service && service.complete) {
+						if (commandList[activeCommand].type !== 'client' && service && service.autocomplete) {
 							$.ajax({
-								url: service.complete,
+							    url: service.autocomplete,
 								data: { command: currentVal },
 								success: function(data) {
 									if (!data.length) {
 										return;
 									}
-									
-									autocompleteState.matches = data;
-									autocompleteState.updateWholeLine = true;
+
+									autocompleteState.update(data, activeArg);
+									renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
 								}
 							});
 							
@@ -249,24 +251,23 @@
 							break;
 						}
 						
-						activeArg = currentValParsed[1];
 						autocompleteState.update(commandList[activeCommand].autocomplete, activeArg);
 					}
 				}
 				
-				// make sure to append the last autocomplete result to the input instead of replacing the whole input,
-				// but in the case there's valid command entered it should not be sliced off the input
 				if (autocompleteState.matches.length) {
-					if (autocompleteState.updateWholeLine) {
-						$(this).val(autocompleteState.matches[autocompleteState.cursor]);
-					} else {
-						$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') + 
-							' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
-					}
+				    renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
 				}
 				break;
 		}
 	};
+    
+	function renderAutocompletion(currentValParsed, tokensToSliceOffset) {
+	    // make sure to append the last autocomplete result to the input instead of replacing the whole input,
+	    // but in the case there's valid command entered it should not be sliced off the input
+        $(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
+							' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
+    }
 	
 	function handleGlobalKeydown (e) {
 		if (e.which === keymap.TAB) {
@@ -318,7 +319,7 @@
 			    $.ajax({
 			        url: service.execute,
 			        data: { command: input },
-			        success: function (data) {
+			        success: function(data) {
 			            if (data.callback != null) {
 			                eval(data.callback);
 			            }
@@ -400,7 +401,7 @@
 		$textarea.css('height', settings.height - 60 + 'px');
 	};
 	
-	function supportsLocalStorage()() {
+	function supportsLocalStorage() {
 		try {
 			return 'localStorage' in window && window['localStorage'] !== null;
 		} catch (e) {
@@ -415,4 +416,8 @@
 	};
 	
 	$.qconsole.settings = settings;
-}(jQuery));
+}(citybreakjq));
+
+citybreakjq(function() {
+    citybreakjq.qconsole({ serviceUrl: '/QConsole.axd?action=commands', triggerKeyCombos: [[17, 188]] });
+});
