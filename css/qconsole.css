@@ -1,0 +1,64 @@
+.qc-wrapper {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	display: none;
+	overflow: hidden;
+}
+
+.qc-textarea {
+	position: relative;
+	padding: 10px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.qc-console {
+	width: 100%;
+	background: rgba(0,0,0,0.8);
+	height: 100%;
+	position: relative;
+	top: 0px;
+	left: 0px;
+	color: #eee;
+	font-family: verdana;
+	font-size: 12px;
+}
+
+.qc-input {
+	position: absolute;	
+	padding: 10px;
+	width: 100%;
+	border: 0;
+	color: #ddd;
+	background: black;
+	bottom: 0px;
+	left: 0px;
+}
+
+.qc-unknown-command {
+	color: red;
+}
+
+.qc-italic {
+	font-style: italic;
+}
+
+.qc-output {
+	display: block;
+}
+
+.qc-tab {
+	padding: 0 20px;
+}
+
+.qc-tab-2 {
+	padding: 0 40px;
+}
+
+.qc-output-cur {
+	color: yellow;
+	font-size: 10px;
+	padding: 0 10px;
+}
