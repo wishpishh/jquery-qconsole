@@ -288,9 +288,6 @@
 					triggerDropdown = false;
 				}
 			}
-
-			if (triggerDropdown)
-				break;
 		}
 		
 		if (triggerDropdown) {
@@ -303,7 +300,7 @@
 	};
 	
 	function handleInput() {
-		var input = $(this).val();
+		var input = $(this).val().trim();
 		
 		if (!input) return;
 		
