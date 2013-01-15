@@ -127,11 +127,7 @@
 		servdesc: {
 			helptext: 'print out the service description object',
 			command: function() {
-				if (!service) {
-					return { success: false, result: 'no service description has been acquired'};
-				}
-				
-				return { success: true, result: JSON.stringify(service) };
+				return { succss: true, result: JSON.stringify(service) };
 			},
 			type: 'client'
 		}
