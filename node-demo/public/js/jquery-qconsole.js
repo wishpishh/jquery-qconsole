@@ -41,7 +41,7 @@
 	, hist
 	, histCursor = 0
 	, $input, $wrapper, $console, $textarea
-	, service;
+	, svcDesc;
 	
 	var nativeCommands = {
 		help: {
@@ -127,7 +127,11 @@
 		servdesc: {
 			helptext: 'print out the service description object',
 			command: function() {
-				return { succss: true, result: JSON.stringify(service) };
+				if (!service) {
+					return { success: false, result: 'no service description has been acquired'};
+				}
+				
+				return { success: true, result: JSON.stringify(svcDesc) };
 			},
 			type: 'client'
 		}
@@ -159,22 +163,6 @@
 	
 		// init commands list and names
 		$.extend(commandList, nativeCommands);
-		
-		if (settings.serviceUrl) {
-			$.ajax({
-				url: settings.serviceUrl,
-				success: function(data) {
-					if (!data.commands) {
-						return;
-					}
-					
-					for (var command in data.commands) {
-						commandList[command] = { helptext: data.commands[command] };
-					}
-					service = data;
-				}
-			});
-		}
 	};
 	
 	function handleInputKeyUp (e) {
@@ -222,7 +210,7 @@
 					autocompleteState.update(commandList[currentValParsed[0]].autocomplete, '.*');
 					tokensToSliceOffset++;
 				} 
-				// we're not currently toggling autocomplete results so we want to see if there are any
+				// we're not currently toggling previous autocomplete results so we want to see if there are any
 				// new autocomplete result for the most recent input token
 				else {
 					// is the most recent token the first? then it should be a command
@@ -238,9 +226,9 @@
 							return;
 						}
 						
-						if (commandList[activeCommand].type !== 'client' && service && service.autocomplete) {
+						if (commandList[activeCommand].type !== 'client' && svcDesc && svcDesc.autocomplete) {
 							$.ajax({
-							    url: service.autocomplete,
+							    url: svcDesc.autocomplete,
 								data: { command: currentVal },
 								success: function(data) {
 									if (!data.length) {
@@ -271,9 +259,9 @@
 	};
     
 	function renderAutocompletion(currentValParsed, tokensToSliceOffset) {
-	    // make sure to append the last autocomplete result to the input instead of replacing the whole input,
-	    // but in the case there's valid command entered it should not be sliced off the input
-        $(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
+		// make sure to append the last autocomplete result to the input instead of replacing the whole input,
+		// but in the case there's valid command entered it should not be sliced off the input
+		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
 							' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
     }
 	
@@ -303,6 +291,23 @@
 		}
 		
 		if (triggerDropdown) {
+			if (!svcDesc && settings.serviceUrl) {
+				$.ajax({
+					url: settings.serviceUrl,
+					success: function(data) {
+						if (!data.commands) {
+							return;
+						}
+						
+						for (var command in data.commands) {
+							commandList[command] = { helptext: data.commands[command] };
+						}
+						
+						svcDesc = data;
+					}
+				});
+			}
+			
 			$wrapper.slideToggle(function() {
 				$input.focus();
 			});
@@ -329,9 +334,9 @@
 			if (commandList[command].type === 'client') {
 				result = commandList[command].command.apply(this, args);
 				renderResponse(input, result);
-			} else if (service.execute) {
+			} else if (svcDesc.execute) {
 			    $.ajax({
-			        url: service.execute,
+			        url: svcDesc.execute,
 			        data: { command: input },
 			        success: function(data) {
 			            if (data.callback != null) {
