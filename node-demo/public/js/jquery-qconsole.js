@@ -202,10 +202,10 @@
 				if (autocompleteState.matches.length > 1) {
 					autocompleteState.cursor = (autocompleteState.cursor + 1) % autocompleteState.matches.length;
 				} 
-				// there is only one autocomplete result and it is a valid command
+				// there is a unique autocomplete result and it is a valid command
 				// so we try to autocomplete on the command's parameters
-				else if (autocompleteState.matches.length === 1 && commandList[currentValParsed[0]]
-					&& commandList[currentValParsed[0]].autocomplete) {
+				else if (autocompleteState.matches.length === 1 && commandList[currentValParsed[currentValParsed.length - 1]]
+					&& commandList[currentValParsed[currentValParsed.length - 1]].autocomplete) {
 					autocompleteState.reset();
 					autocompleteState.update(commandList[currentValParsed[0]].autocomplete, '.*');
 					tokensToSliceOffset++;
@@ -259,8 +259,8 @@
 	};
     
 	function renderAutocompletion(currentValParsed, tokensToSliceOffset) {
-		// make sure to append the last autocomplete result to the input instead of replacing the whole input,
-		// but in the case there's valid command entered it should not be sliced off the input
+		// make sure to append the last autocomplete result to the input instead of replacing the whole input text,
+		// but in the case there's complete valid command entered it should not be sliced off the input
 		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
 							' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
     }
