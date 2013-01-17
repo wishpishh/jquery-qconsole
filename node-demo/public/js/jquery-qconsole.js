@@ -22,21 +22,21 @@
 	, autocompleteState = {
 		cursor: 0,
 		matches: [],
-		update: function (feed, pattern) {
+		source: {},
+		update: function (pattern) {
 		    this.reset();
+			if (!this.source) return;
 		    
-			for (var entry in feed) {
-				if(feed[entry].match(new RegExp('^' + pattern, 'i'))) {
-					this.matches.push(feed[entry]);
+			for (var entry in this.source) {
+				if(entry.match(new RegExp('^' + pattern, 'i'))) {
+					this.matches.push({ name: entry, autocomplete: this.source[entry].autocomplete });
 				}
 			}
 		},
 		reset: function () {
 			this.matches = [];
 			this.cursor = 0;
-			this.updateWholeLine = false;
-		},
-		updateWholeLine: false
+		}
 	}
 	, hist
 	, histCursor = 0
@@ -66,7 +66,7 @@
 			
 				return { success: true, result: retVal };
 			},
-			autocomplete: parseKeys(commandList),
+			autocomplete: commandList,
 			type: 'client'
 		},
 		clear: {
@@ -89,7 +89,7 @@
 						return { success: false, result: "invalid argument: " + arg };
 				}
 			},
-			autocomplete: ['disp', 'hist'],
+			autocomplete: {disp: {}, hist: {}},
 			type: 'client'
 		},
 		echo: {
@@ -97,7 +97,6 @@
 			command: function(val) {
 				return { success: true, result: val };
 			},
-			autocomplete: [],
 			type: 'client'
 		},
 		set: {
@@ -121,7 +120,7 @@
 						return { success: false, result: 'invalid argument: ' + opt };
 				}
 			},
-			autocomplete: ['height'],
+			autocomplete: { height: { autocomplete: { def: {}, max: {}, min: {}}}, opacity: {}},
 			type: 'client'
 		},
 		servdesc: {
@@ -168,10 +167,10 @@
 	function handleInputKeyUp (e) {
 		var activeCommand
 		, tokensToSliceOffset = 0
-		, activeArg
 		, currentValParsed
 	    , inputElem = this
-		, currentVal = $(inputElem).val().trim();
+		, currentVal = $(inputElem).val()
+		, lastToken;
 		
 		if (e.which !== keymap.TAB) {
 			autocompleteState.reset();
@@ -198,56 +197,49 @@
 			case keymap.TAB:
 				currentValParsed = currentVal.split(' ');
 				
+				// there was actually nothing entered so don't do anything
+				if (!currentValParsed.length) break;
+				
+				activeCommand = commandList[currentValParsed[0]];
+				
+				// this means we've probably edited the command after typing in several tokens
+				if (!activeCommand && currentValParsed.length > 1) break;
+				
+				autocompleteState.source = commandList;
+				lastToken = currentValParsed[currentValParsed.length - 1];
+				
+				for (var key in currentValParsed) {
+					if (autocompleteState.source && autocompleteState.source[currentValParsed[key]]) {
+						autocompleteState.source = autocompleteState.source[currentValParsed[key]].autocomplete;
+					}
+				}
+				
 				// we're currently toggling between matching autocomplete results
 				if (autocompleteState.matches.length > 1) {
 					autocompleteState.cursor = (autocompleteState.cursor + 1) % autocompleteState.matches.length;
-				} 
-				// there is a unique autocomplete result and it is a valid command
-				// so we try to autocomplete on the command's parameters
-				else if (autocompleteState.matches.length === 1 && commandList[currentValParsed[currentValParsed.length - 1]]
-					&& commandList[currentValParsed[currentValParsed.length - 1]].autocomplete) {
-					autocompleteState.reset();
-					autocompleteState.update(commandList[currentValParsed[0]].autocomplete, '.*');
-					tokensToSliceOffset++;
-				} 
+				}
 				// we're not currently toggling previous autocomplete results so we want to see if there are any
 				// new autocomplete result for the most recent input token
 				else {
-					// is the most recent token the first? then it should be a command
-					if (currentValParsed.length === 1) {
-						autocompleteState.update(parseKeys(commandList), currentVal);
-					}
-					// otherwise we try to autocomplete on the entered command's parameters
-					else if (currentValParsed.length > 1) {
-					    activeCommand = currentValParsed[0];
-					    activeArg = currentValParsed[currentValParsed.length - 1];
-						
-						if (!commandList[activeCommand]) {
-							return;
-						}
-						
-						if (commandList[activeCommand].type !== 'client' && svcDesc && svcDesc.autocomplete) {
-							$.ajax({
-							    url: svcDesc.autocomplete,
-								data: { command: currentVal },
-								success: function(data) {
-									if (!data.length) {
-										return;
-									}
-
-									autocompleteState.update(data, activeArg);
-									renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
+					if (!activeCommand || activeCommand.type === 'client') {
+						autocompleteState.update(lastToken);
+					} else if (svcDesc && svcDesc.autocomplete) {
+						return $.ajax({
+						    url: svcDesc.autocomplete,
+							data: { command: currentVal },
+							success: function(data) {
+								if (!data.length) {
+									return;
 								}
-							});
 							
-							return;
-						}
-						
-						if (!commandList[activeCommand].autocomplete) {
-							break;
-						}
-						
-						autocompleteState.update(commandList[activeCommand].autocomplete, activeArg);
+								for (var key in data) {
+									autocompleteState.source[key] = { autocomplete: {}};
+								}
+
+								autocompleteState.update(lastToken);
+								renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
+							}
+						});
 					}
 				}
 				
@@ -262,7 +254,7 @@
 		// make sure to append the last autocomplete result to the input instead of replacing the whole input text,
 		// but in the case there's complete valid command entered it should not be sliced off the input
 		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
-							' ' + autocompleteState.matches[autocompleteState.cursor]) + ' ');
+							' ' + autocompleteState.matches[autocompleteState.cursor].name));
     }
 	
 	function handleGlobalKeydown (e) {
@@ -424,14 +416,6 @@
 		} catch (e) {
 			return false;
 		}
-	};
-	
-	function parseKeys(obj) {
-	    var keys = [];
-	    for (var key in obj) {
-	        keys.push(key);
-	    }
-	    return keys;
 	};
 	
 	$.qconsole.settings = settings;
