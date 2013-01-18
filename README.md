@@ -1,4 +1,4 @@
 jquery-qconsole
 ===============
 
-quake-style console for webapp interaction
+quake-style javascript console for webapp interaction
