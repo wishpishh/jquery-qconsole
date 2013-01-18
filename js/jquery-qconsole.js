@@ -126,7 +126,7 @@
 		servdesc: {
 			helptext: 'print out the service description object',
 			command: function() {
-				if (!service) {
+				if (!svcDesc) {
 					return { success: false, result: 'no service description has been acquired'};
 				}
 				

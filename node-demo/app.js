@@ -8,10 +8,12 @@ app.configure(function() {
 	app.use(express.static(path.join(__dirname, 'public')));
 });
 
+var state = 0;
+
 app.get('/description', function(req, res) {
 	res.send({
-		autocomplete: req.headers.host + '/autocomplete',
-		execute: req.headers.host + '/execute',
+		autocomplete: req.protocol + '://' + req.host + ':' + app.get('port') + '/autocomplete',
+		execute: req.protocol + '://' + req.host + ':' + app.get('port') + '/execute',
 		commands: {
 			noautocomp: 'this command does not have any autocomplete options',
 			autocomp: 'this command will receive some autocomplete options',
@@ -22,11 +24,21 @@ app.get('/description', function(req, res) {
 });
 
 app.get('/autocomplete', function(req, res) {
-	console.log("autocomp");
+	res.send({ result: "this would autocomplete", success: true });
 });
 
-app.get('execute', function(req, res) {
-	console.log('execute');
+app.get('/execute', function(req, res) {
+	var command = req.query["command"];
+	
+	switch(command) {
+		case 'updatestate':
+			state++;
+			return res.send({ result: "updated state", success: true });
+		case 'getstate':
+			return res.send({ result: "current state is: " + state, success: true });
+		default:
+			return res.send({ result: "unrecognized command", success: false });
+	}
 });
 
 app.listen(app.get('port'), function(){
