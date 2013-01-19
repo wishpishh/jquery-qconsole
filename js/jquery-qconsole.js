@@ -45,7 +45,7 @@
 	
 	var nativeCommands = {
 		help: {
-			helptext: 'Print list of commands and their help texts<span class="qc-output qc-tab-2">Options: [command-name]</span>',
+			helptext: 'Print list of commands and their help texts\n  Options: [command-name]',
 			command: function(arg) {
 				if (arg) {
 					if (commandList[arg]) {
@@ -58,10 +58,10 @@
 					}
 				}
 				
-				var retVal = 'Available commands:';
+				var retVal = 'Available commands:\n';
 			
 				for (var c in commandList) {
-					retVal += '<span class="qc-output qc-tab-2">' + c + '</span>';
+					retVal += '  ' + c + '\n';
 				}
 			
 				return { success: true, result: retVal };
@@ -70,7 +70,7 @@
 			type: 'client'
 		},
 		clear: {
-			helptext: 'Clear the display or input history<span class="qc-output qc-tab-2">Options: disp, hist</span>',
+			helptext: 'Clear the display or input history\n  Options: disp, hist',
 			command: function(arg) {
 				if (!arguments.length) {
 					$textarea.empty();
@@ -100,7 +100,7 @@
 			type: 'client'
 		},
 		set: {
-			helptext: 'set an option for qconsole<span class="qc-output qc-tab-2">Options: height</span>',
+			helptext: 'set an option for qconsole\n  Options: height',
 			command: function(opt, arg) {
 				if (!arguments.length) {
 					return { success: false, result: 'invalid input, must provide an argument, see "help set"' };
@@ -130,7 +130,7 @@
 					return { success: false, result: 'no service description has been acquired'};
 				}
 				
-				return { success: true, result: JSON.stringify(svcDesc) };
+				return { success: true, result: svcDesc };
 			},
 			type: 'client'
 		}
@@ -140,9 +140,9 @@
 		$.extend(settings, options);
 		
 		// Init qconsole markup
-		$wrapper = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input class="qc-input" type="text"></input></div></div>');
+		$wrapper = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input type="text"></input></div></div>');
 		$console = $wrapper.find('.qc-console');
-		$input = $wrapper.find('.qc-input');
+		$input = $wrapper.find('input');
 		$textarea = $wrapper.find('.qc-textarea');
 		
 		updateLayout();
@@ -322,15 +322,27 @@
 	};
 	
 	function renderResponse(input, result) {
+		if (!result.result) return;
+	
 		var $outputWrapper = $('<span class="qc-output"></span>')
-		, $inputEcho = $('<span class="qc-output qc-italic">' + input + '</span><span class="qc-output-cur">-></span>')
-		, $retValWrapper = $('<span></span>')
-		, retVal = result.result || '';
+		, $inputEcho = $('<span class="qc-output-cur"><</span><span class="qc-input">' + input + '</span><span class="qc-br"></span>')
+		, $retValWrapper = $('<pre class="qc-result"></pre>')
+		, retVal = '';
 		
-		$outputWrapper.append($inputEcho).append($retValWrapper);
+		if ((typeof result.result === "object") && !(result.result instanceof Array)) {
+			retVal = '<code>' + JSON.stringify(result.result, null, 2) + '</code>';
+		} else {
+			retVal = result.result.toString(); // always call toString in case it's an array so we'll get a prettier printout
+		}
+		
+		$outputWrapper
+			.append($inputEcho)
+			.append($('<span class="qc-output-cur">></span>'))
+			.append($retValWrapper)
+			.append($('<span class="qc-br"></span>'));
 		
 		if (!result.success) {
-			$retValWrapper.addClass('qc-unknown-command').addClass('qc-italic');
+			$retValWrapper.addClass('qc-unknown-command').addClass('qc-i');
 		}
 		
 		if (!retVal.length) {
