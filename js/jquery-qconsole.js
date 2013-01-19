@@ -221,26 +221,7 @@
 				// we're not currently toggling previous autocomplete results so we want to see if there are any
 				// new autocomplete result for the most recent input token
 				else {
-					if (!activeCommand || activeCommand.type === 'client') {
-						autocompleteState.update(lastToken);
-					} else if (svcDesc && svcDesc.autocomplete) {
-						return $.ajax({
-						    url: svcDesc.autocomplete,
-							data: { command: currentVal },
-							success: function(data) {
-								if (!data.length) {
-									return;
-								}
-							
-								for (var key in data) {
-									autocompleteState.source[key] = { autocomplete: {}};
-								}
-
-								autocompleteState.update(lastToken);
-								renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
-							}
-						});
-					}
+					autocompleteState.update(lastToken);
 				}
 				
 				if (autocompleteState.matches.length) {
@@ -287,14 +268,9 @@
 				$.ajax({
 					url: settings.serviceUrl,
 					success: function(data) {
-						if (!data.commands) {
-							return;
-						}
+						if (!data.commands) return;
 						
-						for (var command in data.commands) {
-							commandList[command] = { helptext: data.commands[command] };
-						}
-						
+						$.extend(commandList, data.commands);
 						svcDesc = data;
 					}
 				});

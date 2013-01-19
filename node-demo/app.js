@@ -12,19 +12,16 @@ var state = 0;
 
 app.get('/description', function(req, res) {
 	res.send({
-		autocomplete: req.protocol + '://' + req.host + ':' + app.get('port') + '/autocomplete',
 		execute: req.protocol + '://' + req.host + ':' + app.get('port') + '/execute',
 		commands: {
-			noautocomp: 'this command does not have any autocomplete options',
-			autocomp: 'this command will receive some autocomplete options',
-			updatestate: 'update a server state (push a text to an array)',
-			getstate: 'print out the server state'
+			autocomp: { 
+				helptext: 'this command will receive some autocomplete options',
+				autocomplete: { arg1: {}, arg2: { autocomplete: { arg3: {} } } }
+			},
+			updatestate: { helptext: 'update a server state (push a text to an array)' },
+			getstate: { helptext: 'print out the server state' }
 		}
 	});
-});
-
-app.get('/autocomplete', function(req, res) {
-	res.send({ result: "this would autocomplete", success: true });
 });
 
 app.get('/execute', function(req, res) {
