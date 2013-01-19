@@ -92,38 +92,7 @@
 			autocomplete: {disp: {}, hist: {}},
 			type: 'client'
 		},
-		echo: {
-			helptext: 'Echo the entered text',
-			command: function(val) {
-				return { success: true, result: val };
-			},
-			type: 'client'
-		},
-		set: {
-			helptext: 'set an option for qconsole\n  Options: height',
-			command: function(opt, arg) {
-				if (!arguments.length) {
-					return { success: false, result: 'invalid input, must provide an argument, see "help set"' };
-				}
-				
-				switch (opt) {
-					case 'height':
-						var parsedHeight = parseInt(arg, 10);
-						if (!parsedHeight || parsedHeight < 0) {
-							return { success: false, result: 'invalid argument, must be a number > 0' };
-						}
-						
-						settings.height = parsedHeight;
-						updateLayout();
-						return { success: true, result: '' };
-					default:
-						return { success: false, result: 'invalid argument: ' + opt };
-				}
-			},
-			autocomplete: { height: { autocomplete: { def: {}, max: {}, min: {}}}, opacity: {}},
-			type: 'client'
-		},
-		servdesc: {
+		service: {
 			helptext: 'print out the service description object',
 			command: function() {
 				if (!svcDesc) {
