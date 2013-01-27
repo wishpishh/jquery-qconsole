@@ -29,7 +29,7 @@
 		    
 			for (var entry in this.source) {
 				if(entry.match(new RegExp('^' + pattern, 'i'))) {
-					this.matches.push({ name: entry, autocomplete: this.source[entry].autocomplete });
+					this.matches.push(entry);
 				}
 			}
 		},
@@ -45,7 +45,7 @@
 	
 	var nativeCommands = {
 		help: {
-			helptext: 'Print list of commands and their help texts<span class="qc-output qc-tab-2">Options: [command-name]</span>',
+			helptext: 'Print list of commands and their help texts\n  Options: [command-name]',
 			command: function(arg) {
 				if (arg) {
 					if (commandList[arg]) {
@@ -58,10 +58,10 @@
 					}
 				}
 				
-				var retVal = 'Available commands:';
+				var retVal = 'Available commands:\n';
 			
 				for (var c in commandList) {
-					retVal += '<span class="qc-output qc-tab-2">' + c + '</span>';
+					retVal += '  ' + c + '\n';
 				}
 			
 				return { success: true, result: retVal };
@@ -70,7 +70,7 @@
 			type: 'client'
 		},
 		clear: {
-			helptext: 'Clear the display or input history<span class="qc-output qc-tab-2">Options: disp, hist</span>',
+			helptext: 'Clear the display or input history\n  Options: disp, hist',
 			command: function(arg) {
 				if (!arguments.length) {
 					$textarea.empty();
@@ -92,45 +92,14 @@
 			autocomplete: {disp: {}, hist: {}},
 			type: 'client'
 		},
-		echo: {
-			helptext: 'Echo the entered text',
-			command: function(val) {
-				return { success: true, result: val };
-			},
-			type: 'client'
-		},
-		set: {
-			helptext: 'set an option for qconsole<span class="qc-output qc-tab-2">Options: height</span>',
-			command: function(opt, arg) {
-				if (!arguments.length) {
-					return { success: false, result: 'invalid input, must provide an argument, see "help set"' };
-				}
-				
-				switch (opt) {
-					case 'height':
-						var parsedHeight = parseInt(arg, 10);
-						if (!parsedHeight || parsedHeight < 0) {
-							return { success: false, result: 'invalid argument, must be a number > 0' };
-						}
-						
-						settings.height = parsedHeight;
-						updateLayout();
-						return { success: true, result: '' };
-					default:
-						return { success: false, result: 'invalid argument: ' + opt };
-				}
-			},
-			autocomplete: { height: { autocomplete: { def: {}, max: {}, min: {}}}, opacity: {}},
-			type: 'client'
-		},
-		servdesc: {
+		service: {
 			helptext: 'print out the service description object',
 			command: function() {
 				if (!svcDesc) {
 					return { success: false, result: 'no service description has been acquired'};
 				}
 				
-				return { success: true, result: JSON.stringify(svcDesc) };
+				return { success: true, result: svcDesc };
 			},
 			type: 'client'
 		}
@@ -140,9 +109,9 @@
 		$.extend(settings, options);
 		
 		// Init qconsole markup
-		$wrapper = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input class="qc-input" type="text"></input></div></div>');
+		$wrapper = $('<div class="qc-wrapper"><div class="qc-console"><div class="qc-textarea"></div><input type="text"></input></div></div>');
 		$console = $wrapper.find('.qc-console');
-		$input = $wrapper.find('.qc-input');
+		$input = $wrapper.find('input');
 		$textarea = $wrapper.find('.qc-textarea');
 		
 		updateLayout();
@@ -166,7 +135,6 @@
 	
 	function handleInputKeyUp (e) {
 		var activeCommand
-		, tokensToSliceOffset = 0
 		, currentValParsed
 	    , inputElem = this
 		, currentVal = $(inputElem).val()
@@ -205,14 +173,7 @@
 				// this means we've probably edited the command after typing in several tokens
 				if (!activeCommand && currentValParsed.length > 1) break;
 				
-				autocompleteState.source = commandList;
 				lastToken = currentValParsed[currentValParsed.length - 1];
-				
-				for (var key in currentValParsed) {
-					if (autocompleteState.source && autocompleteState.source[currentValParsed[key]]) {
-						autocompleteState.source = autocompleteState.source[currentValParsed[key]].autocomplete;
-					}
-				}
 				
 				// we're currently toggling between matching autocomplete results
 				if (autocompleteState.matches.length > 1) {
@@ -220,41 +181,52 @@
 				}
 				// we're not currently toggling previous autocomplete results so we want to see if there are any
 				// new autocomplete result for the most recent input token
-				else {
-					if (!activeCommand || activeCommand.type === 'client') {
-						autocompleteState.update(lastToken);
-					} else if (svcDesc && svcDesc.autocomplete) {
-						return $.ajax({
-						    url: svcDesc.autocomplete,
-							data: { command: currentVal },
-							success: function(data) {
-								if (!data.length) {
-									return;
-								}
-							
-								for (var key in data) {
-									autocompleteState.source[key] = { autocomplete: {}};
-								}
-
-								autocompleteState.update(lastToken);
-								renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
-							}
-						});
+				else if (!activeCommand || activeCommand.type === 'client') {
+					autocompleteState.source = commandList;
+					
+					for (var key in currentValParsed) {
+						if (autocompleteState.source[currentValParsed[key]]) {
+							autocompleteState.source = autocompleteState.source[currentValParsed[key]].autocomplete || {};
+						}
 					}
+						
+					autocompleteState.update(lastToken);
+				} else if (svcDesc && svcDesc.autocomplete) {
+					return $.ajax({
+						url: svcDesc.autocomplete,
+						data: { command: currentVal },
+						success: function(data) {
+							autocompleteState.reset();
+							
+							if (!(data instanceof Array)) { return; }
+							
+							autocompleteState.source = {};
+							
+							for (var i in data) {
+								autocompleteState.source[data[i]] = {};
+							}
+
+							autocompleteState.update(lastToken);
+
+							renderAutocompletion.call(inputElem, currentValParsed);
+						}
+					});
 				}
 				
 				if (autocompleteState.matches.length) {
-				    renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
+				    renderAutocompletion.call(inputElem, currentValParsed);
 				}
 				break;
 		}
 	};
     
-	function renderAutocompletion(currentValParsed, tokensToSliceOffset) {
+	function renderAutocompletion(currentValParsed) {
+		if (!autocompleteState.matches.length) return;
+		
 		// make sure to append the last autocomplete result to the input instead of replacing the whole input text,
 		// but in the case there's complete valid command entered it should not be sliced off the input
-		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
-							' ' + autocompleteState.matches[autocompleteState.cursor].name));
+		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length - 1).join(' ') +
+							' ' + autocompleteState.matches[autocompleteState.cursor]));
     }
 	
 	function handleGlobalKeydown (e) {
@@ -287,14 +259,9 @@
 				$.ajax({
 					url: settings.serviceUrl,
 					success: function(data) {
-						if (!data.commands) {
-							return;
-						}
+						if (!data.commands) return;
 						
-						for (var command in data.commands) {
-							commandList[command] = { helptext: data.commands[command] };
-						}
-						
+						$.extend(commandList, data.commands);
 						svcDesc = data;
 					}
 				});
@@ -346,15 +313,27 @@
 	};
 	
 	function renderResponse(input, result) {
+		if (!result.result) return;
+	
 		var $outputWrapper = $('<span class="qc-output"></span>')
-		, $inputEcho = $('<span class="qc-output qc-italic">' + input + '</span><span class="qc-output-cur">-></span>')
-		, $retValWrapper = $('<span></span>')
-		, retVal = result.result || '';
+		, $inputEcho = $('<span class="qc-output-cur"><</span><span class="qc-input">' + input + '</span><span class="qc-br"></span>')
+		, $retValWrapper = $('<pre class="qc-result"></pre>')
+		, retVal = '';
 		
-		$outputWrapper.append($inputEcho).append($retValWrapper);
+		if ((typeof result.result === "object") && !(result.result instanceof Array)) {
+			retVal = '<code>' + JSON.stringify(result.result, null, 2) + '</code>';
+		} else {
+			retVal = result.result.toString(); // always call toString in case it's an array so we'll get a prettier printout
+		}
+		
+		$outputWrapper
+			.append($inputEcho)
+			.append($('<span class="qc-output-cur">></span>'))
+			.append($retValWrapper)
+			.append($('<span class="qc-br"></span>'));
 		
 		if (!result.success) {
-			$retValWrapper.addClass('qc-unknown-command').addClass('qc-italic');
+			$retValWrapper.addClass('qc-unknown-command').addClass('qc-i');
 		}
 		
 		if (!retVal.length) {

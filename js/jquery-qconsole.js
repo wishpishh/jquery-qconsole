@@ -29,7 +29,7 @@
 		    
 			for (var entry in this.source) {
 				if(entry.match(new RegExp('^' + pattern, 'i'))) {
-					this.matches.push({ name: entry, autocomplete: this.source[entry].autocomplete });
+					this.matches.push(entry);
 				}
 			}
 		},
@@ -135,7 +135,6 @@
 	
 	function handleInputKeyUp (e) {
 		var activeCommand
-		, tokensToSliceOffset = 0
 		, currentValParsed
 	    , inputElem = this
 		, currentVal = $(inputElem).val()
@@ -174,14 +173,7 @@
 				// this means we've probably edited the command after typing in several tokens
 				if (!activeCommand && currentValParsed.length > 1) break;
 				
-				autocompleteState.source = commandList;
 				lastToken = currentValParsed[currentValParsed.length - 1];
-				
-				for (var key in currentValParsed) {
-					if (autocompleteState.source && autocompleteState.source[currentValParsed[key]]) {
-						autocompleteState.source = autocompleteState.source[currentValParsed[key]].autocomplete;
-					}
-				}
 				
 				// we're currently toggling between matching autocomplete results
 				if (autocompleteState.matches.length > 1) {
@@ -189,22 +181,52 @@
 				}
 				// we're not currently toggling previous autocomplete results so we want to see if there are any
 				// new autocomplete result for the most recent input token
-				else {
+				else if (!activeCommand || activeCommand.type === 'client') {
+					autocompleteState.source = commandList;
+					
+					for (var key in currentValParsed) {
+						if (autocompleteState.source[currentValParsed[key]]) {
+							autocompleteState.source = autocompleteState.source[currentValParsed[key]].autocomplete || {};
+						}
+					}
+						
 					autocompleteState.update(lastToken);
+				} else if (svcDesc && svcDesc.autocomplete) {
+					return $.ajax({
+						url: svcDesc.autocomplete,
+						data: { command: currentVal },
+						success: function(data) {
+							autocompleteState.reset();
+							
+							if (!(data instanceof Array)) { return; }
+							
+							autocompleteState.source = {};
+							
+							for (var i in data) {
+								autocompleteState.source[data[i]] = {};
+							}
+
+							autocompleteState.update(lastToken);
+
+							renderAutocompletion.call(inputElem, currentValParsed);
+						}
+					});
 				}
 				
 				if (autocompleteState.matches.length) {
-				    renderAutocompletion.call(inputElem, currentValParsed, tokensToSliceOffset);
+				    renderAutocompletion.call(inputElem, currentValParsed);
 				}
 				break;
 		}
 	};
     
-	function renderAutocompletion(currentValParsed, tokensToSliceOffset) {
+	function renderAutocompletion(currentValParsed) {
+		if (!autocompleteState.matches.length) return;
+		
 		// make sure to append the last autocomplete result to the input instead of replacing the whole input text,
 		// but in the case there's complete valid command entered it should not be sliced off the input
-		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length + tokensToSliceOffset - 1).join(' ') +
-							' ' + autocompleteState.matches[autocompleteState.cursor].name));
+		$(this).val($.trim(currentValParsed.slice(0, currentValParsed.length - 1).join(' ') +
+							' ' + autocompleteState.matches[autocompleteState.cursor]));
     }
 	
 	function handleGlobalKeydown (e) {
